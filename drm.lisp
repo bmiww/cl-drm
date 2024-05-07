@@ -149,14 +149,14 @@
 
 
 (defvar *vblank-callback* nil)
-(cl-async::define-c-callback vblank :void
+(defcallback vblank :void
     ((fd :int) (sequence :uint) (tv-sec :uint) (tv-usec :uint) (data :pointer))
   (when *vblank-callback* (funcall *vblank-callback* fd sequence tv-sec tv-usec data))
   (format t "Vblank arguments: ~a ~a ~a ~a~%" fd sequence tv-sec tv-usec))
 
 
 (defvar *page-flip-callback* nil)
-(cl-async::define-c-callback page-flip :void
+(defcallback page-flip :void
     ((fd :int) (sequence :uint) (tv-sec :uint) (tv-usec :uint) (data :pointer))
   (when *page-flip-callback* (funcall *page-flip-callback* fd sequence tv-sec tv-usec data)))
 
