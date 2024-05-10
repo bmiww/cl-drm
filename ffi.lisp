@@ -118,28 +118,42 @@
   (vblank_handler :pointer)
   (page_flip_handler :pointer))
 
-;; ┌─┐ ┌─┐┬ ┬┌┐┌┌─┐┌─┐
-;; │───├┤ │ │││││  └─┐
-;; └─┘ └  └─┘┘└┘└─┘└─┘
 
+
+;; ███████╗██╗   ██╗███╗   ██╗ ██████╗███████╗
+;; ██╔════╝██║   ██║████╗  ██║██╔════╝██╔════╝
+;; █████╗  ██║   ██║██╔██╗ ██║██║     ███████╗
+;; ██╔══╝  ██║   ██║██║╚██╗██║██║     ╚════██║
+;; ██║     ╚██████╔╝██║ ╚████║╚██████╗███████║
+;; ╚═╝      ╚═════╝ ╚═╝  ╚═══╝ ╚═════╝╚══════╝
+
+
+;; ┌─┐┌─┐┌┐┌┌┐┌┌─┐┌─┐┌┬┐┌─┐┬─┐
+;; │  │ │││││││├┤ │   │ │ │├┬┘
+;; └─┘└─┘┘└┘┘└┘└─┘└─┘ ┴ └─┘┴└─
+(defcfun ("drmModeGetConnector" mode-get-connector) (:pointer (:struct mode-connector))
+  (fd :int)
+  (connector-id :uint32))
+
+(defcfun ("drmModeFreeConnector" mode-free-connector) :void
+  (connector (:pointer (:struct mode-connector))))
+
+;; ┌┬┐┌─┐┌─┐┌┬┐┌─┐┬─┐
+;; │││├─┤└─┐ │ ├┤ ├┬┘
+;; ┴ ┴┴ ┴└─┘ ┴ └─┘┴└─
 (defcfun ("drmSetMaster" set-master) :int
   (fd :int))
 
 (defcfun ("drmDropMaster" drop-master) :int
   (fd :int))
 
+
+;; ┌─┐┬─┐┌┬┐┌─┐
+;; │  ├┬┘ │ │
+;; └─┘┴└─ ┴ └─┘
 (defcfun ("drmModeGetCrtc" mode-get-crtc) (:pointer (:struct mode-crtc))
   (fd :int)
   (crtc-id :uint32))
-
-(defcfun ("drmModeFreeEncoder" mode-free-encoder) :void
-  (encoder (:pointer (:struct mode-encoder))))
-
-(defcfun ("drmModeFreeConnector" mode-free-connector) :void
-  (connector (:pointer (:struct mode-connector))))
-
-(defcfun ("drmModeFreeResources" mode-free-resources) :void
-  (resources (:pointer (:struct mode-res))))
 
 (defcfun ("drmModeFreeCrtc" mode-free-crtc) :void
   (crtc (:pointer (:struct mode-crtc))))
@@ -154,18 +168,30 @@
   (count :int)
   (mode (:pointer (:struct mode-mode-info))))
 
-
-(defcfun ("drmModeGetResources" mode-get-resources) (:pointer (:struct mode-res))
-  (fd :int))
-
+;; ┌─┐┌┐┌┌─┐┌─┐┌┬┐┌─┐┬─┐
+;; ├┤ ││││  │ │ ││├┤ ├┬┘
+;; └─┘┘└┘└─┘└─┘─┴┘└─┘┴└─
 (defcfun ("drmModeGetEncoder" mode-get-encoder) :pointer
   (fd :int)
   (encoder-id :uint32))
 
-(defcfun ("drmModeGetConnector" mode-get-connector) (:pointer (:struct mode-connector))
-  (fd :int)
-  (connector-id :uint32))
+(defcfun ("drmModeFreeEncoder" mode-free-encoder) :void
+  (encoder (:pointer (:struct mode-encoder))))
 
+
+;; ┬─┐┌─┐┌─┐┌─┐┬ ┬┬─┐┌─┐┌─┐┌─┐
+;; ├┬┘├┤ └─┐│ ││ │├┬┘│  ├┤ └─┐
+;; ┴└─└─┘└─┘└─┘└─┘┴└─└─┘└─┘└─┘
+(defcfun ("drmModeFreeResources" mode-free-resources) :void
+  (resources (:pointer (:struct mode-res))))
+
+(defcfun ("drmModeGetResources" mode-get-resources) (:pointer (:struct mode-res))
+  (fd :int))
+
+
+;; ┌─┐┌┐
+;; ├┤ ├┴┐
+;; └  └─┘
 (defcfun ("drmModeAddFB" mode-add-framebuffer) :int
   (fd :int)
   (width :uint32)
@@ -180,6 +206,10 @@
   (fd :int)
   (buffer-id :uint32))
 
+
+;; ┌─┐┬  ┬┌─┐┌┐┌┌┬┐┌─┐
+;; ├┤ └┐┌┘├┤ │││ │ └─┐
+;; └─┘ └┘ └─┘┘└┘ ┴ └─┘
 (defcfun ("drmModePageFlip" mode-page-flip) :int
   (fd :int)
   (crtc-id :uint32)
