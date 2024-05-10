@@ -6,6 +6,7 @@
 ;; ██║     ██║     ██║
 ;; ╚═╝     ╚═╝     ╚═╝
 (in-package :drm)
+;; NOTE: Libdrm is the mesa wrapper to the drm API
 (define-foreign-library libdrm (t (:default "libdrm")))
 (use-foreign-library libdrm)
 
@@ -30,6 +31,7 @@
 
 (defbitfield (PageFlipFlags :uint32)
   (:page-flip-event 1))
+
 
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
@@ -167,6 +169,7 @@
   (connectors (:pointer :uint32))
   (count :int)
   (mode (:pointer (:struct mode-mode-info))))
+
 
 ;; ┌─┐┌┐┌┌─┐┌─┐┌┬┐┌─┐┬─┐
 ;; ├┤ ││││  │ │ ││├┤ ├┬┘

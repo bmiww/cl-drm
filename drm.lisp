@@ -6,6 +6,10 @@
 ;; ██████╔╝██║  ██║██║ ╚═╝ ██║
 ;; ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝
 ;; TODO: The resource stuff could be turned into a smart class with methods interacting with the crtc/connectors blafu
+;; NOTE: Some documentation on drm usage:
+;; https://landley.net/kdocs/htmldocs/drm.html#idp5032288
+;; NOTE: Some virtual KMS tool that could be used for testing DRM integration?
+;; https://www.kernel.org/doc/html/v6.8/gpu/drm-uapi.html?highlight=drm+plane#using-vkms-to-test-drm-api
 (in-package :drm)
 
 ;; TODO: Does not need the fancy constructor
@@ -50,6 +54,7 @@
 
 (defstruct resources
   (resources nil)
+  (dev-t nil)
   (fbs nil)
   (crtcs nil)
   (connectors nil)
@@ -134,6 +139,8 @@
 			 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i))))
        :encoders   (loop for i from 0 below count-encoders
 			 collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
+       ;; TODO: SBCL Specific
+       :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
        :min-width min-width
        :max-width max-width
        :min-height min-height

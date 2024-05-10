@@ -16,5 +16,6 @@
   :version "0.0.1"
   :depends-on (#:cffi #:cl-async)
   :components ((:file "package")
+	       (:file "fourcc")
 	       (:file "ffi")
 	       (:file "drm")))
