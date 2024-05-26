@@ -64,6 +64,24 @@
   (min-height nil)
   (max-height nil))
 
+(defstruct mode
+  (ptr nil)
+  (clock nil)
+  (hdisplay nil)
+  (hsync-start nil)
+  (hsync-end nil)
+  (htotal nil)
+  (hskew nil)
+  (vdisplay nil)
+  (vsync-start nil)
+  (vsync-end nil)
+  (vtotal nil)
+  (vscan nil)
+  (vrefresh nil)
+  (flags nil)
+  (type nil)
+  (name nil))
+
 ;; ┌─┐┬ ┬┌┐┌┌─┐┌─┐
 ;; ├┤ │ │││││  └─┐
 ;; └  └─┘┘└┘└─┘└─┘
@@ -71,7 +89,7 @@
   ;; (let ((mode (if (pointerp mode) mode (convert-to-foreign)))))
   (with-foreign-objects ((connectors-p :uint32 count))
     (dotimes (i count) (setf (mem-aref connectors-p :uint32 i) (nth i connectors)))
-    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count mode)))
+    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count (mode-ptr mode))))
 
 (defun get-crtc (fd crtc-id)
   (mode-get-crtc fd crtc-id))
@@ -102,8 +120,14 @@
 		:mm-width (getf de-pointerd 'mm-width)
 		:mm-height (getf de-pointerd 'mm-height)
 		:subpixel (getf de-pointerd 'subpixel)
-		:count-modes (getf de-pointerd 'count-modes)
-		:modes (getf de-pointerd 'modes)
+		:modes (let ((count (getf de-pointerd 'count-modes)))
+			 (loop for i from 0 below count
+			       collect (mk-mode
+					(mem-aref (getf de-pointerd 'modes)
+						  '(:struct mode-mode-info) i)
+					(incf-pointer
+					    (getf de-pointerd 'modes)
+					    (* i (foreign-type-size '(:struct mode-mode-info)))))))
 		:count-props (getf de-pointerd 'count-props)
 		:props (getf de-pointerd 'props)
 		:prop-values (getf de-pointerd 'prop-values)
@@ -119,6 +143,26 @@
 		   :possible-crtcs (getf de-pointerd 'possible-crtcs)
 		   :possible-clones (getf de-pointerd 'possible-clones)
 		   :pointer c-encoder)))
+
+
+(defun mk-mode (c-mode-info ptr)
+  (make-mode
+   :ptr ptr
+   :clock (getf c-mode-info 'clock)
+   :hdisplay (getf c-mode-info 'hdisplay)
+   :hsync-start (getf c-mode-info 'hsync-start)
+   :hsync-end (getf c-mode-info 'hsync-end)
+   :htotal (getf c-mode-info 'htotal)
+   :hskew (getf c-mode-info 'hskew)
+   :vdisplay (getf c-mode-info 'vdisplay)
+   :vsync-start (getf c-mode-info 'vsync-start)
+   :vsync-end (getf c-mode-info 'vsync-end)
+   :vtotal (getf c-mode-info 'vtotal)
+   :vscan (getf c-mode-info 'vscan)
+   :vrefresh (getf c-mode-info 'vrefresh)
+   :flags (getf c-mode-info 'flags)
+   :type (getf c-mode-info 'type)
+   :name (getf c-mode-info 'name)))
 
 (defun get-encoder-by-id (resources id)
   (find-if (lambda (encoder) (= id (encoder!-id encoder))) (resources-encoders resources)))
@@ -146,8 +190,6 @@
        :min-height min-height
        :max-height max-height))))
 
-;; TODO: Check if the order of freeing things here should be in any way different
-;; TODO: Add a field to track the original CRTC - so that we can return to it once done
 (defun free-resources (resources)
   (loop for crtc in (resources-crtcs resources) do (free-crtc crtc))
   (loop for connector in (resources-connectors resources) do (mode-free-connector (connector!-pointer connector)))
@@ -155,12 +197,15 @@
   (mode-free-resources (resources-resources resources)))
 
 
+;; ┌─┐┬  ┬┌─┐┌┐┌┌┬┐┌─┐
+;; ├┤ └┐┌┘├┤ │││ │ └─┐
+;; └─┘ └┘ └─┘┘└┘ ┴ └─┘
+;; TODO: Should clean up the *event-context* global when done
 (defvar *vblank-callback* nil)
 (defcallback vblank :void
     ((fd :int) (sequence :uint) (tv-sec :uint) (tv-usec :uint) (data :pointer))
   (when *vblank-callback* (funcall *vblank-callback* fd sequence tv-sec tv-usec data))
   (format t "Vblank arguments: ~a ~a ~a ~a~%" fd sequence tv-sec tv-usec))
-
 
 (defvar *page-flip-callback* nil)
 (defcallback page-flip :void
