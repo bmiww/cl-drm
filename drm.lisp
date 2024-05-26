@@ -132,18 +132,11 @@
      :mm-width (getf de-pointerd 'mm-width)
      :mm-height (getf de-pointerd 'mm-height)
      :subpixel (getf de-pointerd 'subpixel)
-     ;; TODO: A slightly messy way to collect the available modes.
-     ;; Something is going very wrong with the memory management here.
-     ;; For example - 13 modes are being reported, but randomly some of them give pointer errors
-     ;; And a bunch of them just have 0 for all properties
      :modes (let ((count (getf de-pointerd 'count-modes))
 		  (modes (getf de-pointerd 'modes)))
 	      (loop for i from 0 below count
-		    for mode = (handler-case
-				   (mk-mode
-				    (mem-aref modes '(:struct mode-mode-info) i)
-				    (incf-pointer modes (* i (foreign-type-size '(:struct mode-mode-info)))))
-				 (error (c) (format t "Error: ~a --- Skipping mode~%" c)))
+		    for mode = (let ((ptr (mem-aptr modes '(:struct mode-mode-info) i)))
+				 (mk-mode (mem-ref ptr '(:struct mode-mode-info)) ptr))
 		    when (and mode (> (mode-clock mode) 0)) collect mode))
      :props (let ((count (getf de-pointerd 'count-props))
 		  (props (getf de-pointerd 'props))
