@@ -36,9 +36,7 @@
   (mm-height nil)
   (subpixel nil)
   (modes nil)
-  (count-props nil)
   (props nil)
-  (prop-values nil)
   (count-encodes nil)
   (encoders nil)
   (pointer nil))
@@ -81,6 +79,8 @@
   (type nil)
   (name nil))
 
+(defstruct prop ptr id value flags name)
+
 ;; ┌─┐┬ ┬┌┐┌┌─┐┌─┐
 ;; ├┤ │ │││││  └─┐
 ;; └  └─┘┘└┘└─┘└─┘
@@ -109,7 +109,19 @@
 
 (defun free-crtc (crtc) (mode-free-crtc (crtc!-pointer crtc)))
 
-(defun mk-connector (c-connector)
+(defun mk-prop (prop value fd)
+  (let ((prop-pointer (%mode-get-property fd prop)))
+    (if (null-pointer-p prop-pointer)
+	nil
+	(let ((de-pointerd (mem-ref prop-pointer '(:struct mode-property))))
+
+	  ;; TODO: Could still add values/enums/blob_ids
+	  (make-prop :id prop :value value
+		     :ptr prop-pointer
+		     :flags (getf de-pointerd 'flags)
+		     :name (foreign-string-to-lisp (getf de-pointerd 'name) :count 32))))))
+
+(defun mk-connector (c-connector fd)
   (let ((de-pointerd (mem-ref c-connector '(:struct mode-connector))))
     (make-connector!
      :id (getf de-pointerd 'connector-id)
@@ -133,9 +145,12 @@
 				    (incf-pointer modes (* i (foreign-type-size '(:struct mode-mode-info)))))
 				 (error (c) (format t "Error: ~a --- Skipping mode~%" c)))
 		    when (and mode (> (mode-clock mode) 0)) collect mode))
-     :count-props (getf de-pointerd 'count-props)
-     :props (getf de-pointerd 'props)
-     :prop-values (getf de-pointerd 'prop-values)
+     :props (let ((count (getf de-pointerd 'count-props))
+		  (props (getf de-pointerd 'props))
+		  (prop-values (getf de-pointerd 'prop-values)))
+	      (loop for i from 0 below count
+		    for prop = (mk-prop (mem-aref props :uint32 i) (mem-aref prop-values :uint64 i) fd)
+		    when prop collect prop))
      :count-encodes (getf de-pointerd 'count-encodes)
      :encoders (getf de-pointerd 'encoders)
      :pointer c-connector)))
@@ -167,7 +182,7 @@
    :vrefresh (getf c-mode-info 'vrefresh)
    :flags (getf c-mode-info 'flags)
    :type (getf c-mode-info 'type)
-   :name (getf c-mode-info 'name)))
+   :name (foreign-string-to-lisp (getf c-mode-info 'name) :count 32)))
 
 (defun get-encoder-by-id (resources id)
   (find-if (lambda (encoder) (= id (encoder!-id encoder))) (resources-encoders resources)))
@@ -185,7 +200,7 @@
        :crtcs      (loop for i from 0 below count-crtcs
 			 collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))
        :connectors (loop for i from 0 below count-connectors
-			 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i))))
+			 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd))
        :encoders   (loop for i from 0 below count-encoders
 			 collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
        ;; TODO: SBCL Specific

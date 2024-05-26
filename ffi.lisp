@@ -36,6 +36,21 @@
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
 ;; └─┘ └─┘ ┴ ┴└─└─┘└─┘ ┴ └─┘
+(defcstruct mode-property-enum
+  (value :uint64)
+  (name :char :count 32))
+
+(defcstruct mode-property
+  (id :uint32)
+  (flags :uint32)
+  (name :char :count 32)
+  (count-values :int)
+  (values (:pointer :uint64))
+  (count-enums :int)
+  (enums (:pointer (:struct mode-property-enum)))
+  (count-blobs :int)
+  (blob_ids (:pointer :uint32)))
+
 (defcstruct mode-res
   (count-fbs :int)
   (fbs (:pointer :uint32))
@@ -168,6 +183,15 @@
   (connectors (:pointer :uint32))
   (count :int)
   (mode (:pointer (:struct mode-mode-info))))
+
+
+;; ┌─┐┬─┐┌─┐┌─┐┌─┐┬─┐┌┬┐┬┌─┐┌─┐
+;; ├─┘├┬┘│ │├─┘├┤ ├┬┘ │ │├┤ └─┐
+;; ┴  ┴└─└─┘┴  └─┘┴└─ ┴ ┴└─┘└─┘
+
+(defcfun ("drmModeGetProperty" %mode-get-property) (:pointer (:struct mode-property))
+  (fd :int)
+  (property-id :uint32))
 
 
 ;; ┌─┐┌┐┌┌─┐┌─┐┌┬┐┌─┐┬─┐
