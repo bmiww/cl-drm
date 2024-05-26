@@ -29,9 +29,31 @@
   :vertical-bgr
   :none)
 
+(defcenum connector-type
+  (:unknown     0)
+  (:vga         1)
+  (:dvii        2)
+  (:dvid        3)
+  (:dvia        4)
+  (:composite   5)
+  (:svideo      6)
+  (:lvds        7)
+  (:component   8)
+  (:9pindin     9)
+  (:displayport 10)
+  (:hdmia       11)
+  (:hdmib       12)
+  (:tv	        13)
+  (:edp         14)
+  (:virtual     15)
+  (:dsi         16)
+  (:dpi         17)
+  (:writeback   18)
+  (:spi         19)
+  (:usb         20))
+
 (defbitfield (PageFlipFlags :uint32)
   (:page-flip-event 1))
-
 
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
@@ -85,7 +107,7 @@
 (defcstruct mode-connector
   (connector-id :uint32)
   (encoder-id :uint32)
-  (connector-type :uint32)
+  (connector-type connector-type)
   (connector-type-id :uint32)
   (connection mode-connection)
   (mm-width :uint32)
