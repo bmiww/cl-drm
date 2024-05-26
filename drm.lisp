@@ -35,7 +35,6 @@
   (mm-width nil)
   (mm-height nil)
   (subpixel nil)
-  (count-modes nil)
   (modes nil)
   (count-props nil)
   (props nil)
@@ -112,28 +111,34 @@
 
 (defun mk-connector (c-connector)
   (let ((de-pointerd (mem-ref c-connector '(:struct mode-connector))))
-    (make-connector! :id (getf de-pointerd 'connector-id)
-		:encoder-id (getf de-pointerd 'encoder-id)
-		:connector-type (getf de-pointerd 'connector-type)
-		:connector-type-id (getf de-pointerd 'connector-type-id)
-		:connection (getf de-pointerd 'connection)
-		:mm-width (getf de-pointerd 'mm-width)
-		:mm-height (getf de-pointerd 'mm-height)
-		:subpixel (getf de-pointerd 'subpixel)
-		:modes (let ((count (getf de-pointerd 'count-modes)))
-			 (loop for i from 0 below count
-			       collect (mk-mode
-					(mem-aref (getf de-pointerd 'modes)
-						  '(:struct mode-mode-info) i)
-					(incf-pointer
-					    (getf de-pointerd 'modes)
-					    (* i (foreign-type-size '(:struct mode-mode-info)))))))
-		:count-props (getf de-pointerd 'count-props)
-		:props (getf de-pointerd 'props)
-		:prop-values (getf de-pointerd 'prop-values)
-		:count-encodes (getf de-pointerd 'count-encodes)
-		:encoders (getf de-pointerd 'encoders)
-		:pointer c-connector)))
+    (make-connector!
+     :id (getf de-pointerd 'connector-id)
+     :encoder-id (getf de-pointerd 'encoder-id)
+     :connector-type (getf de-pointerd 'connector-type)
+     :connector-type-id (getf de-pointerd 'connector-type-id)
+     :connection (getf de-pointerd 'connection)
+     :mm-width (getf de-pointerd 'mm-width)
+     :mm-height (getf de-pointerd 'mm-height)
+     :subpixel (getf de-pointerd 'subpixel)
+     ;; TODO: A slightly messy way to collect the available modes.
+     ;; Something is going very wrong with the memory management here.
+     ;; For example - 13 modes are being reported, but randomly some of them give pointer errors
+     ;; And a bunch of them just have 0 for all properties
+     :modes (let ((count (getf de-pointerd 'count-modes))
+		  (modes (getf de-pointerd 'modes)))
+	      (loop for i from 0 below count
+		    for mode = (handler-case
+				   (mk-mode
+				    (mem-aref modes '(:struct mode-mode-info) i)
+				    (incf-pointer modes (* i (foreign-type-size '(:struct mode-mode-info)))))
+				 (error (c) (format t "Error: ~a --- Skipping mode~%" c)))
+		    when (and mode (> (mode-clock mode) 0)) collect mode))
+     :count-props (getf de-pointerd 'count-props)
+     :props (getf de-pointerd 'props)
+     :prop-values (getf de-pointerd 'prop-values)
+     :count-encodes (getf de-pointerd 'count-encodes)
+     :encoders (getf de-pointerd 'encoders)
+     :pointer c-connector)))
 
 (defun mk-encoder (c-encoder)
   (let ((de-pointerd (mem-ref c-encoder '(:struct mode-encoder))))

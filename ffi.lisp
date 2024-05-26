@@ -91,7 +91,6 @@
   (possible-crtcs :uint32)
   (possible-clones :uint32))
 
-  ;; NOTE: The CRTC mode field is rather annoying. It is a
 (defcstruct mode-crtc
   (crtc-id :uint32)
   (buffer-id :uint32)
