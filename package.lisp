@@ -18,4 +18,9 @@
 
    mode-crtc-width
    mode-crtc-height
-   handle-event))
+   handle-event
+
+   mode-hdisplay
+   mode-vdisplay
+
+   connector!-connector-type))

@@ -14,7 +14,7 @@
 ;; ┌─┐┌─┐┌┐┌┌─┐┌┬┐┌─┐┌┐┌┌┬┐┌─┐
 ;; │  │ ││││└─┐ │ ├─┤│││ │ └─┐
 ;; └─┘└─┘┘└┘└─┘ ┴ ┴ ┴┘└┘ ┴ └─┘
-(defconstant +drm-event-context+ 2)
+(defconstant +drm-event-context+ 3)
 
 (defcenum mode-connection
   (:connected 1)
@@ -154,7 +154,9 @@
 (defcstruct event-context
   (version :int)
   (vblank_handler :pointer)
-  (page_flip_handler :pointer))
+  (page_flip_handler :pointer)
+  (page_flip_handler2 :pointer)
+  (sequence_handler :pointer))
 
 
 

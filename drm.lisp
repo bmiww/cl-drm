@@ -225,15 +225,31 @@
     ((fd :int) (sequence :uint) (tv-sec :uint) (tv-usec :uint) (data :pointer))
   (when *page-flip-callback* (funcall *page-flip-callback* fd sequence tv-sec tv-usec data)))
 
+(defvar *page-flip2-callback* nil)
+(defcallback page-flip2 :void
+    ((fd :int) (sequence :uint) (tv-sec :uint) (tv-usec :uint) (crtc-id :uint) (data :pointer))
+  (when *page-flip2-callback* (funcall *page-flip2-callback* fd sequence tv-sec tv-usec crtc-id data)))
+
+(defvar *sequence-callback* nil)
+(defcallback %sequence :void
+    ((fd :int) (sequence :uint64) (ns :uint64) (data :uint64))
+  (when *sequence-callback* (funcall *sequence-callback* fd sequence ns data)))
+
 (defvar *event-context* nil)
-(defun handle-event (fd &key vblank page-flip)
+(defun handle-event (fd &key vblank page-flip page-flip2 sequence)
+  "Handle a drm event. Usually paired with polling on the fd.
+Sets the callback function whenever invoked. Not thread-safe as far as i assume."
   (unless *event-context*
     (setf *event-context* (foreign-alloc '(:struct event-context)))
     (setf (foreign-slot-value *event-context* '(:struct event-context) 'version) +drm-event-context+)
     (setf (foreign-slot-value *event-context* '(:struct event-context) 'vblank_handler) (callback vblank))
-    (setf (foreign-slot-value *event-context* '(:struct event-context) 'page_flip_handler) (callback page-flip)))
+    (setf (foreign-slot-value *event-context* '(:struct event-context) 'page_flip_handler) (callback page-flip))
+    (setf (foreign-slot-value *event-context* '(:struct event-context) 'page_flip_handler2) (callback page-flip2))
+    (setf (foreign-slot-value *event-context* '(:struct event-context) 'sequence_handler) (callback %sequence)))
 
   (when vblank (setf *vblank-callback* vblank))
   (when page-flip (setf *page-flip-callback* page-flip))
+  (when page-flip2 (setf *page-flip2-callback* page-flip2))
+  (when sequence (setf *sequence-callback* sequence))
 
   (drm-handle-event fd *event-context*))
