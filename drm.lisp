@@ -57,7 +57,7 @@
   (min-height nil)
   (max-height nil))
 
-(defstruct mode
+(defstruct mode!
   (ptr nil)
   (clock nil)
   (hdisplay nil)
@@ -83,7 +83,7 @@
 (defun set-crtc (fd crtc-id buffer-id x y connectors mode &optional (count (length connectors)))
   (with-foreign-objects ((connectors-p :uint32 count))
     (dotimes (i count) (setf (mem-aref connectors-p :uint32 i) (nth i connectors)))
-    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count (mode-ptr mode))))
+    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count (mode!-ptr mode))))
 
 (defun get-crtc (fd crtc-id)
   (mode-get-crtc fd crtc-id))
@@ -150,7 +150,7 @@
 
 
 (defun mk-mode (c-mode-info ptr)
-  (make-mode
+  (make-mode!
    :ptr ptr
    :clock (getf c-mode-info 'clock)
    :hdisplay (getf c-mode-info 'hdisplay)
