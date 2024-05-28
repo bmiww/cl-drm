@@ -128,7 +128,7 @@
 	      (loop for i from 0 below count
 		    for mode = (let ((ptr (mem-aptr modes '(:struct mode-mode-info) i)))
 				 (mk-mode (mem-ref ptr '(:struct mode-mode-info)) ptr))
-		    when (and mode (> (mode-clock mode) 0)) collect mode))
+		    when (and mode (> (mode!-clock mode) 0)) collect mode))
      :props (let ((count (getf de-pointerd 'count-props))
 		  (props (getf de-pointerd 'props))
 		  (prop-values (getf de-pointerd 'prop-values)))
