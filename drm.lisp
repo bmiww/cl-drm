@@ -23,8 +23,7 @@
   (mode-valid nil)
   (mode nil)
   (mode-ptr nil)
-  (gamma-size nil)
-  (pointer nil))
+  (gamma-size nil))
 
 (defstruct connector!
   (id nil)
@@ -37,16 +36,14 @@
   (subpixel nil)
   (modes nil)
   (props nil)
-  (encoders nil)
-  (pointer nil))
+  (encoders nil))
 
 (defstruct encoder!
   (id nil)
   (encoder-type nil)
   (crtc-id nil)
   (possible-crtcs nil)
-  (possible-clones nil)
-  (pointer nil))
+  (possible-clones nil))
 
 (defstruct resources
   (resources nil)
@@ -78,13 +75,12 @@
   (type nil)
   (name nil))
 
-(defstruct prop ptr id value flags name)
+(defstruct prop id value flags name)
 
 ;; ┌─┐┬ ┬┌┐┌┌─┐┌─┐
 ;; ├┤ │ │││││  └─┐
 ;; └  └─┘┘└┘└─┘└─┘
 (defun set-crtc (fd crtc-id buffer-id x y connectors mode &optional (count (length connectors)))
-  ;; (let ((mode (if (pointerp mode) mode (convert-to-foreign)))))
   (with-foreign-objects ((connectors-p :uint32 count))
     (dotimes (i count) (setf (mem-aref connectors-p :uint32 i) (nth i connectors)))
     (mode-set-crtc fd crtc-id buffer-id x y connectors-p count (mode-ptr mode))))
@@ -103,10 +99,7 @@
 		:mode-valid (getf de-pointerd 'mode-valid)
 		:mode       (getf de-pointerd 'mode)
 		:mode-ptr   (foreign-slot-pointer c-crtc '(:struct mode-crtc) 'mode)
-		:gamma-size (getf de-pointerd 'gamma-size)
-		:pointer    c-crtc)))
-
-(defun free-crtc (crtc) (mode-free-crtc (crtc!-pointer crtc)))
+		:gamma-size (getf de-pointerd 'gamma-size))))
 
 (defun mk-prop (prop value fd)
   (let ((prop-pointer (%mode-get-property fd prop)))
@@ -116,7 +109,6 @@
 
 	  ;; TODO: Could still add values/enums/blob_ids
 	  (make-prop :id prop :value value
-		     :ptr prop-pointer
 		     :flags (getf de-pointerd 'flags)
 		     :name (foreign-string-to-lisp (getf de-pointerd 'name) :count 32))))))
 
@@ -146,8 +138,7 @@
      :encoders (let ((count (getf de-pointerd 'count-encodes))
 		     (encoders (getf de-pointerd 'encoders)))
 		 (loop for i from 0 below count
-		       collect (mem-aref encoders :uint32 i)))
-     :pointer c-connector)))
+		       collect (mem-aref encoders :uint32 i))))))
 
 (defun mk-encoder (c-encoder)
   (let ((de-pointerd (mem-ref c-encoder '(:struct mode-encoder))))
@@ -155,8 +146,7 @@
 		   :encoder-type (getf de-pointerd 'encoder-type)
 		   :crtc-id (getf de-pointerd 'crtc-id)
 		   :possible-crtcs (getf de-pointerd 'possible-crtcs)
-		   :possible-clones (getf de-pointerd 'possible-clones)
-		   :pointer c-encoder)))
+		   :possible-clones (getf de-pointerd 'possible-clones))))
 
 
 (defun mk-mode (c-mode-info ptr)
@@ -202,13 +192,8 @@
        :min-width min-width
        :max-width max-width
        :min-height min-height
-       :max-height max-height))))
-
-(defun free-resources (resources)
-  (loop for crtc in (resources-crtcs resources) do (free-crtc crtc))
-  (loop for connector in (resources-connectors resources) do (mode-free-connector (connector!-pointer connector)))
-  (loop for encoder in (resources-encoders resources) do (mode-free-encoder (encoder!-pointer encoder)))
-  (mode-free-resources (resources-resources resources)))
+       :max-height max-height))
+    (mode-free-resources resources)))
 
 
 ;; ┌─┐┬  ┬┌─┐┌┐┌┌┬┐┌─┐
