@@ -24,4 +24,10 @@
    mode-hdisplay
    mode-vdisplay
 
+   crtc!-id
+
+   encoder!-id
+   encoder!-crtc-id
+
+   connector!-encoders
    connector!-connector-type))

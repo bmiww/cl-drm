@@ -37,7 +37,6 @@
   (subpixel nil)
   (modes nil)
   (props nil)
-  (count-encodes nil)
   (encoders nil)
   (pointer nil))
 
