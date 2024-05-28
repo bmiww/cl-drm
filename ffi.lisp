@@ -178,6 +178,10 @@
 (defcfun ("drmModeFreeConnector" mode-free-connector) :void
   (connector (:pointer (:struct mode-connector))))
 
+(defcfun ("drmModeConnectorGetPossibleCrtcs" %connector-get-possible-crtcs) :uint32
+  (fd :int)
+  (connector (:pointer (:struct mode-connector))))
+
 ;; ┌┬┐┌─┐┌─┐┌┬┐┌─┐┬─┐
 ;; │││├─┤└─┐ │ ├┤ ├┬┘
 ;; ┴ ┴┴ ┴└─┘ ┴ └─┘┴└─

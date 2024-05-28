@@ -30,6 +30,7 @@
   (connector-type nil)
   (connector-type-id nil)
   (connection nil)
+  (possible-crtcs nil)
   (mm-width nil)
   (mm-height nil)
   (subpixel nil)
@@ -110,13 +111,16 @@
 		     :flags (getf de-pointerd 'flags)
 		     :name (foreign-string-to-lisp (getf de-pointerd 'name) :count 32))))))
 
-(defun mk-connector (c-connector fd)
+(defun mk-connector (c-connector fd crtcs)
   (let ((de-pointerd (mem-ref c-connector '(:struct mode-connector))))
     (make-connector!
      :id (getf de-pointerd 'connector-id)
      :encoder-id (getf de-pointerd 'encoder-id)
      :connector-type (getf de-pointerd 'connector-type)
      :connector-type-id (getf de-pointerd 'connector-type-id)
+     :possible-crtcs (let* ((possible-crtcs (%connector-get-possible-crtcs fd c-connector))
+			    (ids (get-uint32-bit-indices possible-crtcs)))
+		       (mapcar (lambda (id) (nth id crtcs)) ids))
      :connection (getf de-pointerd 'connection)
      :mm-width (getf de-pointerd 'mm-width)
      :mm-height (getf de-pointerd 'mm-height)
@@ -177,22 +181,23 @@
 		fbs count-fbs encoders count-encoders
 		min-width max-width min-height max-height)
 	 resources (:struct mode-res))
-      (setf resources-out
-	    (make-resources
-	     :resources resources
-	     ;; :fbs (loop for i from 0 below count-fbs collect (mem-aref fbs i))
-	     :crtcs      (loop for i from 0 below count-crtcs
-			       collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))
-	     :connectors (loop for i from 0 below count-connectors
-			       collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd))
-	     :encoders   (loop for i from 0 below count-encoders
-			       collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
-	     ;; TODO: SBCL Specific
-	     :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
-	     :min-width min-width
-	     :max-width max-width
-	     :min-height min-height
-	     :max-height max-height)))
+      (let ((crtcs (loop for i from 0 below count-crtcs
+			       collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))))
+	(setf resources-out
+	      (make-resources
+	       :resources resources
+	       ;; :fbs (loop for i from 0 below count-fbs collect (mem-aref fbs i))
+	       :crtcs crtcs
+	       :connectors (loop for i from 0 below count-connectors
+				 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd crtcs))
+	       :encoders   (loop for i from 0 below count-encoders
+				 collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
+	       ;; TODO: SBCL Specific
+	       :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
+	       :min-width min-width
+	       :max-width max-width
+	       :min-height min-height
+	       :max-height max-height))))
     (mode-free-resources resources)
     resources-out))
 
@@ -240,3 +245,12 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
   (when sequence (setf *sequence-callback* sequence))
 
   (drm-handle-event fd *event-context*))
+
+
+;; ┬ ┬┌┬┐┬┬
+;; │ │ │ ││
+;; └─┘ ┴ ┴┴─┘
+(defun get-uint32-bit-indices (uint32)
+  (loop for i from 0 below 32
+	for indice = (if (logbitp i uint32) i nil)
+	when indice collect indice))
