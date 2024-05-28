@@ -144,8 +144,10 @@
 	      (loop for i from 0 below count
 		    for prop = (mk-prop (mem-aref props :uint32 i) (mem-aref prop-values :uint64 i) fd)
 		    when prop collect prop))
-     :count-encodes (getf de-pointerd 'count-encodes)
-     :encoders (getf de-pointerd 'encoders)
+     :encoders (let ((count (getf de-pointerd 'count-encodes))
+		     (encoders (getf de-pointerd 'encoders)))
+		 (loop for i from 0 below count
+		       collect (mem-aref encoders :uint32 i)))
      :pointer c-connector)))
 
 (defun mk-encoder (c-encoder)

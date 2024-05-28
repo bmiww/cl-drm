@@ -12,6 +12,7 @@
 
    resources-crtcs
    resources-connectors
+   resources-encoders
 
    set-crtc
    free-crtc
