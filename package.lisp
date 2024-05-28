@@ -46,6 +46,7 @@
    connector!-subpixel
    connector!-modes
    connector!-props
+   connector!-possible-crtcs
 
    mode!-ptr
    mode!-clock
