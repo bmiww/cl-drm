@@ -22,7 +22,6 @@
   (height nil)
   (mode-valid nil)
   (mode nil)
-  (mode-ptr nil)
   (gamma-size nil))
 
 (defstruct connector!
@@ -80,10 +79,10 @@
 ;; ┌─┐┬ ┬┌┐┌┌─┐┌─┐
 ;; ├┤ │ │││││  └─┐
 ;; └  └─┘┘└┘└─┘└─┘
-(defun set-crtc (fd crtc-id buffer-id x y connectors mode &optional (count (length connectors)))
+(defun set-crtc (fd crtc-id buffer-id x y connectors mode-ptr &optional (count (length connectors)))
   (with-foreign-objects ((connectors-p :uint32 count))
     (dotimes (i count) (setf (mem-aref connectors-p :uint32 i) (nth i connectors)))
-    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count (mode!-ptr mode))))
+    (mode-set-crtc fd crtc-id buffer-id x y connectors-p count mode-ptr)))
 
 (defun get-crtc (fd crtc-id)
   (mode-get-crtc fd crtc-id))
@@ -97,8 +96,7 @@
 		:width      (getf de-pointerd 'width)
 		:height     (getf de-pointerd 'height)
 		:mode-valid (getf de-pointerd 'mode-valid)
-		:mode       (getf de-pointerd 'mode)
-		:mode-ptr   (foreign-slot-pointer c-crtc '(:struct mode-crtc) 'mode)
+		:mode       (mk-mode (getf de-pointerd 'mode) (foreign-slot-pointer c-crtc '(:struct mode-crtc) 'mode))
 		:gamma-size (getf de-pointerd 'gamma-size))))
 
 (defun mk-prop (prop value fd)
