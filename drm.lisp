@@ -172,28 +172,31 @@
   (find-if (lambda (encoder) (= id (encoder!-id encoder))) (resources-encoders resources)))
 
 (defun get-resources (fd)
-  (let ((resources (mode-get-resources fd)))
+  (let ((resources (mode-get-resources fd))
+	(resources-out nil))
     (with-foreign-slots
 	((crtcs count-crtcs connectors count-connectors
 		fbs count-fbs encoders count-encoders
 		min-width max-width min-height max-height)
 	 resources (:struct mode-res))
-      (make-resources
-       :resources resources
-       ;; :fbs (loop for i from 0 below count-fbs collect (mem-aref fbs i))
-       :crtcs      (loop for i from 0 below count-crtcs
-			 collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))
-       :connectors (loop for i from 0 below count-connectors
-			 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd))
-       :encoders   (loop for i from 0 below count-encoders
-			 collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
-       ;; TODO: SBCL Specific
-       :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
-       :min-width min-width
-       :max-width max-width
-       :min-height min-height
-       :max-height max-height))
-    (mode-free-resources resources)))
+      (setf resources-out
+	    (make-resources
+	     :resources resources
+	     ;; :fbs (loop for i from 0 below count-fbs collect (mem-aref fbs i))
+	     :crtcs      (loop for i from 0 below count-crtcs
+			       collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))
+	     :connectors (loop for i from 0 below count-connectors
+			       collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd))
+	     :encoders   (loop for i from 0 below count-encoders
+			       collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
+	     ;; TODO: SBCL Specific
+	     :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
+	     :min-width min-width
+	     :max-width max-width
+	     :min-height min-height
+	     :max-height max-height)))
+    (mode-free-resources resources)
+    resources-out))
 
 
 ;; ┌─┐┬  ┬┌─┐┌┐┌┌┬┐┌─┐
