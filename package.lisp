@@ -11,6 +11,8 @@
    get-resources
    get-devices
 
+   device!-primary device!-render
+
    resources-crtcs
    resources-connectors
    resources-encoders

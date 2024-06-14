@@ -101,32 +101,33 @@
   ;; NOTE: libdrm mentions a max of 256 devices
   ;; TODO: Make flags settable by the user
   (with-foreign-pointer (array 256 size)
-    (let ((result (%get-devices 0 array size)))
+    (let ((result (%get-devices 0 array size))
+	  (devices nil))
       (when (< result 0) (error (format nil "Failed to get devices: ~a" result)))
-      (prog1
-      (loop for i from 0 below result
-	    collect
-	    (let* ((new-struct (make-device!))
-		   (structure (mem-ref (mem-aref array '(:pointer (:struct drm-device)) i) '(:struct drm-device)))
-		   (nodes (loop for i from 0 below nodes-max
-				collect (mem-aref (getf structure 'nodes) :string i)))
-		   (bus-info (getf structure 'bus-info))
-		   (dev-info (getf structure 'dev-info)))
+      (setf devices (loop for i from 0 below result
+			  collect
+			  (let* ((new-struct (make-device!))
+				 (structure (mem-ref (mem-aref array '(:pointer (:struct drm-device)) i) '(:struct drm-device)))
+				 (nodes (loop for i from 0 below nodes-max
+					      collect (mem-aref (getf structure 'nodes) :string i)))
+				 (bus-info (getf structure 'bus-info))
+				 (dev-info (getf structure 'dev-info)))
 
-	      (setf (device!-dev-info new-struct) (mem-ref (getf dev-info 'pci) '(:struct pci-device)))
-	      (setf (device!-bus new-struct)
-		    (case (getf structure 'bus-type)
-		      (:pci      (mem-ref (getf bus-info 'pci) '(:struct pci-bus)))
-		      (:platform (mem-ref (getf bus-info 'platform) '(:struct platform-bus)))
-		      (:host1x   (mem-ref (getf bus-info 'host1x) '(:struct host1x-bus)))
-		      (t (error (format nil "Unhandled bus type: ~a" (getf structure 'bus-type))))))
+			    (setf (device!-dev-info new-struct) (mem-ref (getf dev-info 'pci) '(:struct pci-device)))
+			    (setf (device!-bus new-struct)
+				  (case (getf structure 'bus-type)
+				    (:pci      (mem-ref (getf bus-info 'pci) '(:struct pci-bus)))
+				    (:platform (mem-ref (getf bus-info 'platform) '(:struct platform-bus)))
+				    (:host1x   (mem-ref (getf bus-info 'host1x) '(:struct host1x-bus)))
+				    (t (error (format nil "Unhandled bus type: ~a" (getf structure 'bus-type))))))
 
-	      (setf (device!-primary new-struct) (node-name (car nodes)))
-	      (setf (device!-control new-struct) (node-name (cadr nodes)))
-	      (setf (device!-render new-struct) (node-name (caddr nodes)))
+			    (setf (device!-primary new-struct) (node-name (car nodes)))
+			    (setf (device!-control new-struct) (node-name (cadr nodes)))
+			    (setf (device!-render new-struct) (node-name (caddr nodes)))
 
-	      new-struct))
-      (%free-devices array result)))))
+			    new-struct)))
+      (%free-devices array result)
+      devices)))
 
 
 (defun set-crtc (fd crtc-id buffer-id x y connectors mode-ptr &optional (count (length connectors)))
