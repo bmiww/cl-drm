@@ -77,9 +77,58 @@
 
 (defstruct prop id value flags name)
 
+(defstruct pci-bus
+  ())
+
+(defstruct platform-bus ())
+(defstruct host1x-bus ())
+
+(defstruct device!
+  (primary nil)
+  (control nil)
+  (render nil)
+  (bus nil)
+  (dev-info nil))
+
 ;; ┌─┐┬ ┬┌┐┌┌─┐┌─┐
 ;; ├┤ │ │││││  └─┐
 ;; └  └─┘┘└┘└─┘└─┘
+(defvar nodes-max 3)
+(defun node-name (node) (if (string= node "") nil node))
+
+(defun get-devices ()
+  "Get the devices available on the system"
+  ;; NOTE: libdrm mentions a max of 256 devices
+  ;; TODO: Make flags settable by the user
+  (with-foreign-pointer (array 256 size)
+    (let ((result (%get-devices 0 array size)))
+      (when (< result 0) (error (format nil "Failed to get devices: ~a" result)))
+      (loop for i from 0 below result
+	    collect
+	    (let* ((new-struct (make-device!))
+		   (structure (mem-ref (mem-aref array '(:pointer (:struct drm-device)) i) '(:struct drm-device)))
+		   (nodes (loop for i from 0 below nodes-max
+				collect (mem-aref (getf structure 'nodes) :string i)))
+		   (bus-info (getf structure 'bus-info))
+		   (dev-info (getf structure 'dev-info)))
+
+	      (setf (device!-dev-info new-struct) (mem-ref (getf dev-info 'pci) '(:struct pci-device)))
+	      (setf (device!-bus new-struct)
+		    (case (getf structure 'bus-type)
+		      (:pci      (mem-ref (getf bus-info 'pci) '(:struct pci-bus)))
+		      (:platform (mem-ref (getf bus-info 'platform) '(:struct platform-bus)))
+		      (:host1x   (mem-ref (getf bus-info 'host1x) '(:struct host1x-bus)))
+		      (t (error (format nil "Unhandled bus type: ~a" (getf structure 'bus-type))))))
+
+	      (setf (device!-primary new-struct) (node-name (car nodes)))
+	      (setf (device!-control new-struct) (node-name (cadr nodes)))
+	      (setf (device!-render new-struct) (node-name (caddr nodes)))
+
+	      new-struct))
+      (%free-devices array result)
+      nil)))
+
+
 (defun set-crtc (fd crtc-id buffer-id x y connectors mode-ptr &optional (count (length connectors)))
   (with-foreign-objects ((connectors-p :uint32 count))
     (dotimes (i count) (setf (mem-aref connectors-p :uint32 i) (nth i connectors)))

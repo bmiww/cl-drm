@@ -16,6 +16,12 @@
 ;; └─┘└─┘┘└┘└─┘ ┴ ┴ ┴┘└┘ ┴ └─┘
 (defconstant +drm-event-context+ 3)
 
+(defcenum bus-type
+  (:pci 0)
+  (:usb 1)
+  (:platform 2)
+  (:host 3))
+
 (defcenum mode-connection
   (:connected 1)
   (:disconnected 2)
@@ -58,6 +64,42 @@
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
 ;; └─┘ └─┘ ┴ ┴└─└─┘└─┘ ┴ └─┘
+(defcstruct pci-bus
+  (domain :uint16)
+  (bus :uint8)
+  (dev :uint8)
+  (func :uint8))
+
+(defcstruct platform-bus
+  (full-name :char :count 512))
+
+(defcstruct host1x-bus
+  (full-name :char :count 512))
+
+(defcstruct pci-device
+  (vendor-id :uint16)
+  (device-id :uint16)
+  (subvendor-id :uint16)
+  (subdevice-id :uint16)
+  (revision-id :uint8))
+
+(defcunion bus-info
+  (pci (:pointer (:struct pci-bus)))
+  (platform (:pointer (:struct platform-bus)))
+  (host1x (:pointer (:struct host1x-bus))))
+
+(defcunion dev-info
+  (pci (:pointer (:struct pci-device))))
+
+(defcstruct drm-device
+  ;; (nodes (:pointer (:pointer :char)))
+  (nodes (:pointer :string))
+  (available-nodes :int)
+  (bus-type bus-type)
+  (bus-info (:union bus-info))
+  (dev-info (:union dev-info)))
+
+
 (defcstruct mode-property-enum
   (value :uint64)
   (name :char :count 32))
@@ -274,3 +316,16 @@
 (defcfun ("drmHandleEvent" drm-handle-event) :int
   (fd :int)
   (event-context (:pointer (:struct event-context))))
+
+
+;; ┌┬┐┌─┐┬  ┬┬┌─┐┌─┐┌─┐
+;;  ││├┤ └┐┌┘││  ├┤ └─┐
+;; ─┴┘└─┘ └┘ ┴└─┘└─┘└─┘
+(defcfun ("drmGetDevices2" %get-devices) :int
+  (flags :uint32)
+  (devices (:pointer (:pointer (:struct drm-device))))
+  (num-devices :int))
+
+(defcfun ("drmFreeDevices" %free-devices) :void
+  (devices (:pointer (:pointer (:struct drm-device))))
+  (num-devices :int))
