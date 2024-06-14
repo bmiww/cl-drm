@@ -77,12 +77,6 @@
 
 (defstruct prop id value flags name)
 
-(defstruct pci-bus
-  ())
-
-(defstruct platform-bus ())
-(defstruct host1x-bus ())
-
 (defstruct device!
   (primary nil)
   (control nil)
