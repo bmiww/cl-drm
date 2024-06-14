@@ -103,6 +103,7 @@
   (with-foreign-pointer (array 256 size)
     (let ((result (%get-devices 0 array size)))
       (when (< result 0) (error (format nil "Failed to get devices: ~a" result)))
+      (prog1
       (loop for i from 0 below result
 	    collect
 	    (let* ((new-struct (make-device!))
@@ -125,8 +126,7 @@
 	      (setf (device!-render new-struct) (node-name (caddr nodes)))
 
 	      new-struct))
-      (%free-devices array result)
-      nil)))
+      (%free-devices array result)))))
 
 
 (defun set-crtc (fd crtc-id buffer-id x y connectors mode-ptr &optional (count (length connectors)))

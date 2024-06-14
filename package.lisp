@@ -9,6 +9,7 @@
   (:use :cl :cffi)
   (:export
    get-resources
+   get-devices
 
    resources-crtcs
    resources-connectors
