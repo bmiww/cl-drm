@@ -61,6 +61,27 @@
 (defbitfield (PageFlipFlags :uint32)
   (:page-flip-event 1))
 
+;; NOTE: To extract more meaning out of the flags, you can try to refer to:
+;; https://gitlab.freedesktop.org/mesa/drm/-/blob/main/include/drm/drm.h#L623
+;; https://dottedmag.net/blog/03-de-drm-ioctl/
+(defcenum capabilities
+  (:dumb-buffer #x1)
+  (:vblank-high-crtc #x2)
+  (:dumb-preferred-depth #x3)
+  (:dumb-prefer-shadow #x4)
+  (:prime #x5)
+  (:timestamp-monotonic #x6)
+  (:async-page-flip #x7)
+  (:cursor-width #x8)
+  (:cursor-height #x9)
+  (:addfb2-modifiers #x10)
+  (:page-flip-target #x11)
+  (:crtc-in-vblank-event #x12)
+  (:syncobj #x13)
+  (:syncobj-timeline #x14)
+  (:atomic-async-page-flip #x15))
+
+
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
 ;; └─┘ └─┘ ┴ ┴└─└─┘└─┘ ┴ └─┘
@@ -321,6 +342,11 @@
 ;; ┌┬┐┌─┐┬  ┬┬┌─┐┌─┐┌─┐
 ;;  ││├┤ └┐┌┘││  ├┤ └─┐
 ;; ─┴┘└─┘ └┘ ┴└─┘└─┘└─┘
+(defcfun ("drmGetCap" %get-cap) :int
+  (fd :int)
+  (capability capabilities)
+  (value (:pointer :uint64)))
+
 (defcfun ("drmGetDevices2" %get-devices) :int
   (flags :uint32)
   (devices (:pointer (:pointer (:struct drm-device))))

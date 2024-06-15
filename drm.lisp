@@ -55,7 +55,8 @@
   (min-width nil)
   (max-width nil)
   (min-height nil)
-  (max-height nil))
+  (max-height nil)
+  (capabilities nil))
 
 (defstruct mode!
   (ptr nil)
@@ -241,7 +242,9 @@
 	       :min-width min-width
 	       :max-width max-width
 	       :min-height min-height
-	       :max-height max-height))))
+	       :max-height max-height
+	       ;; TODO: Make this not a default?
+	       :capabilities (get-all-capabilities fd)))))
     (mode-free-resources resources)
     resources-out))
 
@@ -289,6 +292,47 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
   (when sequence (setf *sequence-callback* sequence))
 
   (drm-handle-event fd *event-context*))
+
+
+
+;; ┌─┐┌─┐┌─┐┌─┐┌┐ ┬┬  ┬┌┬┐┬ ┬  ┌─┐ ┬ ┬┌─┐┬─┐┬ ┬
+;; │  ├─┤├─┘├─┤├┴┐││  │ │ └┬┘  │─┼┐│ │├┤ ├┬┘└┬┘
+;; └─┘┴ ┴┴  ┴ ┴└─┘┴┴─┘┴ ┴  ┴   └─┘└└─┘└─┘┴└─ ┴
+(defconstant +capabilities+
+  (list
+   :dumb-buffer :dumb-preferred-depth :dumb-prefer-shadow
+   :vblank-high-crtc :crtc-in-vblank-event
+   :prime :timestamp-monotonic :async-page-flip
+   :cursor-width :cursor-height
+   :addfb2-modifiers
+   :page-flip-target
+   :syncobj :syncobj-timeline
+   :atomic-async-page-flip))
+
+(defconstant +cap-type+
+  (list :dumb-buffer :boolean
+	:vblank-high-crtc :boolean
+	:dumb-prefer-shadow :boolean
+	:timestamp-monotonic :boolean
+	:async-page-flip :boolean
+	:addfb2-modifiers :boolean
+	:page-flip-target :boolean
+	:crtc-in-vblank-event :boolean
+	:syncobj :boolean
+	:syncobj-timeline :boolean
+	:atomic-async-page-flip :boolean))
+
+(defun get-all-capabilities (fd)
+  (loop for capability in +capabilities+
+	collect capability
+	collect (with-foreign-object (value :uint64)
+		  (unless (zerop (%get-cap fd capability value))
+		    (format t "Failed to get capability ~a~%" capability))
+
+		  (let ((cap-type (getf +cap-type+ capability)) (value (mem-ref value :uint64)))
+		    (case cap-type
+		      (:boolean (not (zerop value)))
+		      (t value))))))
 
 
 ;; ┬ ┬┌┬┐┬┬
