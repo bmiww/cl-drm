@@ -212,6 +212,23 @@
   (mode (:struct mode-mode-info))
   (gamma-size :int))
 
+(defcstruct mode-plane-res
+  (count-planes :uint32)
+  (planes (:pointer :uint32)))
+
+(defcstruct mode-plane
+  (count-formats :uint32)
+  (formats (:pointer :uint32))
+  (plane-id :uint32)
+  (crtc-id :uint32)
+  (fb-id :uint32)
+  (crtc-x :uint32)
+  (crtc-y :uint32)
+  (x :uint32)
+  (y :uint32)
+  (possible-crtcs :uint32)
+  (gamma-size :uint32))
+
 (defcstruct drm-event
   (type :uint32)
   (length :uint32))
@@ -370,3 +387,14 @@
 (defcfun ("drmFreeDevices" %free-devices) :void
   (devices (:pointer (:pointer (:struct drm-device))))
   (num-devices :int))
+
+
+;; ┌─┐┬  ┌─┐┌┐┌┌─┐┌─┐
+;; ├─┘│  ├─┤│││├┤ └─┐
+;; ┴  ┴─┘┴ ┴┘└┘└─┘└─┘
+(defcfun ("drmModeGetPlaneResources" %get-plane-resources) (:pointer (:struct mode-plane-res))
+  (fd :int))
+
+(defcfun ("drmModeGetPlane" %get-plane) (:pointer (:struct mode-plane))
+  (fd :int)
+  (plane-id :uint32))

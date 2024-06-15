@@ -119,6 +119,22 @@
 		   :possible-crtcs (getf de-pointerd 'possible-crtcs)
 		   :possible-clones (getf de-pointerd 'possible-clones))))
 
+(defun mk-plane (c-plane)
+  (let ((plane (mem-ref c-plane '(:struct mode-plane))))
+    (make-plane!
+     :id (getf plane 'plane-id)
+     :crtc-id (getf plane 'crtc-id)
+     :fb-id (getf plane 'fb-id)
+     :formats (let ((count (getf plane 'count-formats))
+		    (formats (getf plane 'formats)))
+		(loop for i from 0 below count
+		      collect (mem-aref formats :uint32 i)))
+     :crtc-x (getf plane 'crtc-x)
+     :crtc-y (getf plane 'crtc-y)
+     :x (getf plane 'x)
+     :y (getf plane 'y)
+     :possible-crtcs (getf plane 'possible-crtcs)
+     :gamma-size (getf plane 'gamma-size))))
 
 (defun mk-mode (c-mode-info ptr)
   (make-mode!
@@ -143,30 +159,38 @@
   (find-if (lambda (encoder) (= id (encoder!-id encoder))) (resources-encoders resources)))
 
 (defun get-resources (fd)
-  (let ((resources (mode-get-resources fd))
+  (let* ((resources (mode-get-resources fd))
+	(planes (%get-plane-resources fd))
 	(resources-out nil))
     (with-foreign-slots
 	((crtcs count-crtcs connectors count-connectors
 		fbs count-fbs encoders count-encoders
 		min-width max-width min-height max-height)
 	 resources (:struct mode-res))
-      (let ((crtcs (loop for i from 0 below count-crtcs
-			       collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i))))))
+      (let* ((crtcs (loop for i from 0 below count-crtcs
+			  collect (mk-crtc (mode-get-crtc fd (mem-aref crtcs :uint32 i)))))
+	     (connectors (loop for i from 0 below count-connectors
+			       collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd crtcs)))
+	     (encoders (loop for i from 0 below count-encoders
+			     collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))))
 	(setf resources-out
 	      (make-resources
 	       :resources resources
 	       ;; :fbs (loop for i from 0 below count-fbs collect (mem-aref fbs i))
 	       :crtcs crtcs
-	       :connectors (loop for i from 0 below count-connectors
-				 collect (mk-connector (mode-get-connector fd (mem-aref connectors :uint32 i)) fd crtcs))
-	       :encoders   (loop for i from 0 below count-encoders
-				 collect (mk-encoder (mode-get-encoder fd (mem-aref encoders :uint32 i))))
+	       :connectors connectors
+	       :encoders encoders
 	       ;; TODO: SBCL Specific
 	       :dev-t (sb-posix:stat-rdev (sb-posix:fstat fd))
 	       :min-width min-width
 	       :max-width max-width
 	       :min-height min-height
 	       :max-height max-height
+	       :planes
+	       (with-foreign-slots ((count-planes planes)
+				    planes (:struct mode-plane-res))
+		 (loop for i from 0 below count-planes
+		       collect (mk-plane (%get-plane fd (mem-aref planes :uint32 i)))))
 	       ;; TODO: Make this not a default?
 	       :capabilities (get-all-capabilities fd)))))
     (mode-free-resources resources)
@@ -218,11 +242,10 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
   (drm-handle-event fd *event-context*))
 
 
-
 ;; ┌─┐┌─┐┌─┐┌─┐┌┐ ┬┬  ┬┌┬┐┬ ┬  ┌─┐ ┬ ┬┌─┐┬─┐┬ ┬
 ;; │  ├─┤├─┘├─┤├┴┐││  │ │ └┬┘  │─┼┐│ │├┤ ├┬┘└┬┘
 ;; └─┘┴ ┴┴  ┴ ┴└─┘┴┴─┘┴ ┴  ┴   └─┘└└─┘└─┘┴└─ ┴
-(defconstant +capabilities+
+(defvar +capabilities+
   (list
    :dumb-buffer :dumb-preferred-depth :dumb-prefer-shadow
    :vblank-high-crtc :crtc-in-vblank-event
@@ -233,13 +256,13 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
    :syncobj :syncobj-timeline
    :atomic-async-page-flip))
 
-(defconstant +client-capabilities+
+(defvar +client-capabilities+
   (list
    :stereo-3d :atomic
    :universal-planes :aspect-ratio
    :writeback-connectors :cursor-plane-hotspot))
 
-(defconstant +cap-type+
+(defvar +cap-type+
   (list
    ;; Regular capabilities for get-cap
    :dumb-buffer :boolean

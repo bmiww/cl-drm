@@ -31,7 +31,7 @@
   (connectors nil) (encoders nil)
   (min-width nil) (max-width nil)
   (min-height nil) (max-height nil)
-  (capabilities nil))
+  (capabilities nil) (planes nil))
 
 (defstruct mode!
   (ptr nil) (clock nil)
@@ -44,3 +44,10 @@
 (defstruct device!
   (primary nil) (control nil) (render nil)
   (bus nil) (dev-info nil))
+
+(defstruct plane!
+  (formats nil)
+  (id nil) (crtc-id nil) (fb-id nil)
+  (crtc-x nil) (crtc-y nil)
+  (x nil) (y nil)
+  (possible-crtcs nil) (gamma-size nil))
