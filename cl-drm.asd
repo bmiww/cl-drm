@@ -18,4 +18,5 @@
   :components ((:file "package")
 	       (:file "fourcc")
 	       (:file "ffi")
+	       (:file "structs")
 	       (:file "drm")))
