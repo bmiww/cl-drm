@@ -81,6 +81,16 @@
   (:syncobj-timeline #x14)
   (:atomic-async-page-flip #x15))
 
+;; NOTE: To extract more meaning out of the flags, you can try to refer to:
+;; https://gitlab.freedesktop.org/mesa/drm/-/blob/main/include/drm/drm.h#L623
+(defcenum client-capabilities
+  (:stereo-3d 1)
+  (:universal-planes 2)
+  (:atomic 3)
+  (:aspect-ratio 4)
+  (:writeback-connectors 5)
+  (:cursor-plane-hotspot 6))
+
 
 ;; ┌─┐ ┌─┐┌┬┐┬─┐┬ ┬┌─┐┌┬┐┌─┐
 ;; │───└─┐ │ ├┬┘│ ││   │ └─┐
@@ -346,6 +356,11 @@
   (fd :int)
   (capability capabilities)
   (value (:pointer :uint64)))
+
+(defcfun ("drmSetClientCap" %set-client-cap) :int
+  (fd :int)
+  (capability client-capabilities)
+  (value :uint64))
 
 (defcfun ("drmGetDevices2" %get-devices) :int
   (flags :uint32)

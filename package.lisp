@@ -10,17 +10,17 @@
   (:export
    get-resources
    get-devices
+   enable-capabilities
+   set-crtc
+   handle-event
 
-   device!-primary device!-render
+   device!-primary
+   device!-render
 
    resources-crtcs
    resources-connectors
    resources-encoders
-
-   set-crtc
-
-   handle-event
-
+   resources-capabilities
 
    crtc!-id
    crtc!-buffer-id

@@ -309,18 +309,33 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
    :syncobj :syncobj-timeline
    :atomic-async-page-flip))
 
+(defconstant +client-capabilities+
+  (list
+   :stereo-3d :atomic
+   :universal-planes :aspect-ratio
+   :writeback-connectors :cursor-plane-hotspot))
+
 (defconstant +cap-type+
-  (list :dumb-buffer :boolean
-	:vblank-high-crtc :boolean
-	:dumb-prefer-shadow :boolean
-	:timestamp-monotonic :boolean
-	:async-page-flip :boolean
-	:addfb2-modifiers :boolean
-	:page-flip-target :boolean
-	:crtc-in-vblank-event :boolean
-	:syncobj :boolean
-	:syncobj-timeline :boolean
-	:atomic-async-page-flip :boolean))
+  (list
+   ;; Regular capabilities for get-cap
+   :dumb-buffer :boolean
+   :vblank-high-crtc :boolean
+   :dumb-prefer-shadow :boolean
+   :timestamp-monotonic :boolean
+   :async-page-flip :boolean
+   :addfb2-modifiers :boolean
+   :page-flip-target :boolean
+   :crtc-in-vblank-event :boolean
+   :syncobj :boolean
+   :syncobj-timeline :boolean
+   :atomic-async-page-flip :boolean
+   ;; Client set capabilities for set-cap
+   :stereo-3d :boolean
+   :universal-planes :boolean
+   :aspect-ratio :boolean
+   :writeback-connectors :boolean
+   :atomic :boolean
+   :cursor-plane-hotspot :boolean))
 
 (defun get-all-capabilities (fd)
   (loop for capability in +capabilities+
@@ -333,6 +348,22 @@ Sets the callback function whenever invoked. Not thread-safe as far as i assume.
 		    (case cap-type
 		      (:boolean (not (zerop value)))
 		      (t value))))))
+
+;; TODO: I don't know about cursor-plane-hotspot -
+(defun enable-capabilities (fd &rest args)
+  (loop for cap in args
+	do (progn
+	     (unless (member cap +client-capabilities+) (error "Invalid client capability ~a" cap))
+	     (set-cap fd cap t))))
+
+
+(defun set-cap (fd capability value)
+  (let ((ret (%set-client-cap
+	      fd capability
+	      (case (getf +cap-type+ capability)
+		(:boolean (if value 1 0))
+		(t (error "Capability ~a is not a boolean flag" capability))))))
+    (unless (zerop ret) (error "Failed to set capability: ~a. Code: ~a" capability ret))))
 
 
 ;; ┬ ┬┌┬┐┬┬
