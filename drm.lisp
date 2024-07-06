@@ -160,8 +160,8 @@
 
 (defun get-resources (fd)
   (let* ((resources (mode-get-resources fd))
-	(planes (%get-plane-resources fd))
-	(resources-out nil))
+	 (planes (%get-plane-resources fd))
+	 (resources-out nil))
     (with-foreign-slots
 	((crtcs count-crtcs connectors count-connectors
 		fbs count-fbs encoders count-encoders
@@ -191,7 +191,6 @@
 				    planes (:struct mode-plane-res))
 		 (loop for i from 0 below count-planes
 		       collect (mk-plane (%get-plane fd (mem-aref planes :uint32 i)))))
-	       ;; TODO: Make this not a default?
 	       :capabilities (get-all-capabilities fd)))))
     (mode-free-resources resources)
     resources-out))
